@@ -83,6 +83,7 @@ const CONFIG = {
     retour: 1.6,              // confettis ou trébuchement avant l’explication
     arretPersonnage: 1.0,     // temps pour que l’artisan s’arrête
     explicationMin: 1.5,      // délai avant que « Question suivante » soit cliquable
+    enchainement: 4,          // bonne réponse : la question suivante démarre seule après ce délai
     changementCouloir: 0.25,  // glissement d’un couloir à l’autre
     arrivee: 2,               // course finale jusqu’à la banderole
     fonduFin: 0.8,            // apparition de l’écran de fin
@@ -90,6 +91,8 @@ const CONFIG = {
   },
 
   couloirDepart: 2,  // couloir de l’artisan au début : 1 = A, 2 = B, 3 = C, 4 = D
+  enchainementAuto: true, // true = après une bonne réponse, le jeu enchaîne tout seul ; false = on attend toujours Espace
+  turbo: 2.5,        // flèche ↑ (ou Z) maintenue pendant la course : vitesse multipliée par ce nombre (1 = pas de turbo)
   volume: 0.4,       // volume général des sons (0 à 1)
 
   /* ---------- 4. LES COULEURS DE LA CHARTE ---------- */
@@ -119,6 +122,8 @@ const CONFIG = {
     boutonJouer: "Jouer",
     aideCouloir: "changer de couloir",
     aideJouer: "jouer",
+    aideTurbo: "maintenir pour accélérer",
+    turbo: "Turbo",
     partez: "Partez !",
     sprintFinal: "Sprint final !",
     vitesse: "Vitesse",
@@ -247,6 +252,8 @@ html, body {
 .fleche svg { width: 52px; height: 52px; }
 body.tactile .fleche { display: grid !important; }
 #fleche-gauche { left: 24px; } #fleche-droite { right: 24px; }
+#fleche-turbo { right: 24px; top: 356px; background: rgba(39, 99, 182, .85) !important; }
+#pill-vitesse.turbo { background: var(--bleu); color: #fff; }
 
 /* ---------- Compte à rebours et retours ---------- */
 #decompte { position: absolute; left: 0; right: 0; top: 300px; text-align: center; color: var(--encre); pointer-events: none; }
@@ -274,6 +281,7 @@ body.tactile .fleche { display: grid !important; }
 }
 .bouton-principal:hover:not(:disabled) { transform: scale(1.05); }
 .bouton-principal:disabled { opacity: .4; cursor: default !important; }
+.bouton-principal.auto { background: linear-gradient(90deg, #1b4a8a var(--p, 0%), var(--bleu) var(--p, 0%)) !important; }
 .bouton-principal kbd { font: 900 20px/1 var(--texte); padding: 7px 12px; border-radius: 8px; background: rgba(255, 255, 255, .22); }
 
 /* Accueil */
@@ -365,6 +373,7 @@ body.tactile .fleche { display: grid !important; }
     </div>
     <button class="fleche" id="fleche-gauche" aria-label="Couloir de gauche"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="16,4 6,12 16,20"/></svg></button>
     <button class="fleche" id="fleche-droite" aria-label="Couloir de droite"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,4 18,12 8,20"/></svg></button>
+    <button class="fleche" id="fleche-turbo" aria-label="Accélérer (maintenir)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="4,17 12,6 20,17"/></svg></button>
   </div>
 
   <div id="decompte" aria-hidden="true"></div>
@@ -383,6 +392,7 @@ body.tactile .fleche { display: grid !important; }
       <button id="btn-jouer" class="bouton-principal"></button>
       <div class="aide">
         <div><span class="touche">←</span><span class="touche">→</span>&nbsp;ou&nbsp;<span class="touche">Q</span><span class="touche">D</span>&nbsp;: <span id="aide-couloir"></span></div>
+        <div id="aide-ligne-turbo"><span class="touche">↑</span>&nbsp;ou&nbsp;<span class="touche">Z</span>&nbsp;: <span id="aide-turbo"></span></div>
         <div><span class="touche">Espace</span>&nbsp;: <span id="aide-jouer"></span></div>
       </div>
     </div>
@@ -558,6 +568,7 @@ const Son = {
   bip()       { this.note(440, 0, 0.12, 'sine', 0.45); },
   partez()    { this.note(880, 0, 0.25, 'sine', 0.55); },
   couloir()   { this.souffle(0.12, 800, 2000, 0.3); },
+  turbo()     { this.souffle(0.35, 400, 1800, 0.35); this.note(330, 0, 0.3, 'sawtooth', 0.05, 660); },
   bord()      { this.note(220, 0, 0.05, 'sine', 0.35); },
   tic()       { this.note(1000, 0, 0.04, 'square', 0.1); },
   bonne() {
@@ -1096,7 +1107,8 @@ function annoncer(texte) { el.annonce.textContent = texte; }
 // Textes fixes venant de CONFIG
 $('logo-l1').textContent = T.titreLigne1; $('logo-l2').textContent = T.titreLigne2;
 $('accueil-accroche').textContent = typo(T.accueilAccroche); $('accueil-groupe').textContent = T.accueilGroupe;
-$('aide-couloir').textContent = T.aideCouloir; $('aide-jouer').textContent = T.aideJouer;
+$('aide-couloir').textContent = T.aideCouloir; $('aide-jouer').textContent = T.aideJouer; $('aide-turbo').textContent = T.aideTurbo;
+if (!(CONFIG.turbo > 1)) { $('aide-ligne-turbo').classList.add('cache'); $('fleche-turbo').classList.add('cache'); }
 el.btnJouer.textContent = T.boutonJouer; el.btnRejouer.innerHTML = `${T.boutonRejouer}<kbd>Espace</kbd>`;
 $('pause-titre').textContent = T.pause; el.btnReprendre.innerHTML = `${T.boutonReprendre}<kbd>Espace</kbd>`;
 $('expl-etiquette-bonne').textContent = '✓ ' + T.etiquetteBonne; $('expl-etiquette-choisie').textContent = '✗ ' + T.etiquetteChoisie;
@@ -1143,7 +1155,7 @@ redimensionner();
 function textesPills() {
   el.pillQuestion.textContent = `${T.question} ${etat.index + 1} / ${NB}`;
   el.pillScore.textContent = `${T.score} ${etat.score} / ${NB}`;
-  el.pillVitesse.innerHTML = `${ICONES.vitesse}${T.vitesse} ${formatMultiplicateur(multiplicateur(etat.index))}`;
+  majPillVitesse();
 }
 function remplirCartes() {
   const q = CONFIG.questions[etat.index], m = etat.manche;
@@ -1173,12 +1185,30 @@ const etat = {
   phase: 'accueil', t: 0, index: 0, score: 0, resultats: [], couloirsBons: [],
   couloirCible: CONFIG.couloirDepart - 1, manche: null, vitesseCourse: 0, vitesseMonde: 0,
   decompteIndex: -1, dernierTic: 99, reponduQuestion: false, dernierChoix: 0, dernierOk: false,
-  phaseAvantPause: null, boutonActif: false, derniereAction: 0
+  phaseAvantPause: null, boutonActif: false, derniereAction: 0,
+  turbo: false, facteurTurbo: 1, turboAffiche: false, enchainement: false
 };
 const PHASES_AVEC_COMMANDES = ['apparition', 'decompte', 'course'];
 
+// Pastille de vitesse : « Vitesse x1,4 », ou « Turbo x3,5 » quand le turbo est actif
+function majPillVitesse() {
+  const m = multiplicateur(etat.index);
+  el.pillVitesse.classList.toggle('turbo', etat.turboAffiche);
+  el.pillVitesse.innerHTML = etat.turboAffiche
+    ? `${ICONES.vitesse}${T.turbo} ${formatMultiplicateur(m * CONFIG.turbo)}`
+    : `${ICONES.vitesse}${T.vitesse} ${formatMultiplicateur(m)}`;
+}
+// Turbo : tant que ↑ (ou Z, ou le bouton tactile) est maintenu, l’artisan accélère pendant la course
+function activerTurbo(oui) {
+  if (!(CONFIG.turbo > 1)) return;
+  if (oui && !etat.turbo && etat.phase === 'course') Son.turbo();
+  etat.turbo = oui;
+}
+
 function entrerPhase(phase) {
   etat.phase = phase; etat.t = 0;
+  etat.facteurTurbo = 1;
+  if (etat.turboAffiche) { etat.turboAffiche = false; majPillVitesse(); }
   if (phase === 'decompte') etat.decompteIndex = -1;
   if (phase === 'course') etat.dernierTic = 99;
   if (phase === 'explication') ouvrirExplication();
@@ -1322,6 +1352,9 @@ function ouvrirExplication() {
   $('expl-texte').textContent = typo(q.explication);
   el.btnSuivant.innerHTML = `${etat.index < NB - 1 ? T.boutonSuivant : T.boutonScore}<kbd>Espace</kbd>`;
   el.btnSuivant.disabled = true; etat.boutonActif = false;
+  etat.enchainement = ok && CONFIG.enchainementAuto && D.enchainement > 0;
+  el.btnSuivant.classList.toggle('auto', etat.enchainement);
+  el.btnSuivant.style.setProperty('--p', '0%');
   montrer(el.retour, false);
   $('cartes').style.visibility = 'hidden';
   montrer(el.explication, true);
@@ -1365,7 +1398,7 @@ function ouvrirFin() {
 function basculerPause() {
   if (etat.phase === 'pause') {
     etat.phase = etat.phaseAvantPause; montrer(el.pause, false); Son.clic();
-  } else if (PHASES_AVEC_COMMANDES.includes(etat.phase)) {
+  } else if (PHASES_AVEC_COMMANDES.includes(etat.phase) || etat.phase === 'explication') { // pause aussi pendant l’explication (stoppe l’enchaînement)
     etat.phaseAvantPause = etat.phase; etat.phase = 'pause'; montrer(el.pause, true); Son.clic();
   }
 }
@@ -1411,6 +1444,7 @@ window.addEventListener('keydown', (ev) => {
   if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', 'enter'].includes(k) || code === 'Space') ev.preventDefault();
   if (k === 'arrowleft' || k === 'q' || code === 'KeyA') { if (!ev.repeat) deplacer(-1); return; }
   if (k === 'arrowright' || k === 'd' || code === 'KeyD') { if (!ev.repeat) deplacer(1); return; }
+  if (k === 'arrowup' || k === 'z' || code === 'KeyW') { activerTurbo(true); return; }
   if (/^(Digit|Numpad)[1-4]$/.test(code)) { allerAuCouloir(Number(code.slice(-1)) - 1); return; }
   if (code === 'Space' || k === ' ' || k === 'enter') { if (!ev.repeat) actionPrincipale(); return; }
   if (ev.repeat) return;
@@ -1430,6 +1464,14 @@ el.btnPleinEcran.addEventListener('click', () => { Son.init(); basculerPleinEcra
 document.addEventListener('fullscreenchange', majBoutonPleinEcran);
 $('fleche-gauche').addEventListener('pointerdown', (e) => { e.preventDefault(); Son.init(); deplacer(-1); });
 $('fleche-droite').addEventListener('pointerdown', (e) => { e.preventDefault(); Son.init(); deplacer(1); });
+window.addEventListener('keyup', (ev) => {
+  const k = ev.key.toLowerCase();
+  if (k === 'arrowup' || k === 'z' || ev.code === 'KeyW') activerTurbo(false);
+});
+window.addEventListener('blur', () => activerTurbo(false));
+const boutonTurbo = $('fleche-turbo');
+boutonTurbo.addEventListener('pointerdown', (e) => { e.preventDefault(); Son.init(); boutonTurbo.setPointerCapture?.(e.pointerId); activerTurbo(true); });
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach((t) => boutonTurbo.addEventListener(t, () => activerTurbo(false)));
 el.cartes.forEach((carte, c) => carte.addEventListener('click', () => { Son.init(); allerAuCouloir(c); }));
 
 // Tactile : affiche les flèches et accepte le balayage horizontal sur la scène
@@ -1572,7 +1614,8 @@ function mettreAJourPersonnage(dt) {
 function mettreAJourCamera(dt) {
   const cibleX = clamp(perso.x * 0.2, -0.8, 0.8);
   camera.position.x = lerp(camera.position.x, cibleX, 1 - Math.exp(-dt * 4));
-  const fovCible = etat.phase === 'passage' ? CAMERA.fov - 4 : CAMERA.fov; // léger zoom sous l’arche
+  // léger zoom sous l’arche, champ plus large en turbo (effet de vitesse)
+  const fovCible = etat.phase === 'passage' ? CAMERA.fov - 4 : etat.phase === 'course' && etat.turbo ? CAMERA.fov + 6 : CAMERA.fov;
   camera.fov = lerp(camera.fov, fovCible, 1 - Math.exp(-dt * 8));
   camera.updateProjectionMatrix();
   camera.lookAt(camera.position.x, CAMERA.viseY, CAMERA.viseZ);
@@ -1598,7 +1641,9 @@ function mettreAJour(dt) {
       break;
     }
     case 'course': {
-      vitesse = etat.vitesseCourse;
+      etat.facteurTurbo = lerp(etat.facteurTurbo, etat.turbo ? CONFIG.turbo : 1, 1 - Math.exp(-dt * 10)); // accélération progressive
+      vitesse = etat.vitesseCourse * etat.facteurTurbo;
+      if (etat.turbo !== etat.turboAffiche) { etat.turboAffiche = etat.turbo; majPillVitesse(); }
       const distance = Z_FRANCHISSEMENT - arches.position.z;
       const restant = distance / vitesse;
       el.barre.style.transform = `scaleX(${clamp(distance / CONFIG.distanceArches, 0, 1)})`;
@@ -1618,6 +1663,10 @@ function mettreAJour(dt) {
       break;
     case 'explication':
       if (!etat.boutonActif && etat.t >= D.explicationMin) { etat.boutonActif = true; el.btnSuivant.disabled = false; }
+      if (etat.enchainement) {   // bonne réponse : le bouton se remplit puis le jeu enchaîne
+        el.btnSuivant.style.setProperty('--p', Math.min(100, (etat.t / D.enchainement) * 100) + '%');
+        if (etat.t >= D.enchainement) { etat.boutonActif = true; questionSuivante(); }
+      }
       break;
     case 'arrivee':
       vitesse = CONFIG.vitesseDeBase;
