@@ -91,7 +91,8 @@ const CONFIG = {
   },
 
   couloirDepart: 2,  // couloir de l’artisan au début : 1 = A, 2 = B, 3 = C, 4 = D
-  enchainementAuto: true, // true = après une bonne réponse, le jeu enchaîne tout seul ; false = on attend toujours Espace
+  decompteEntreQuestions: false,    // false = « 3, 2, 1, Partez ! » seulement avant la 1re question ; true = avant chaque question
+  explicationSiBonneReponse: false, // false = bonne réponse : on enchaîne directement ; true = l’explication s’affiche puis enchaîne seule (voir durees.enchainement)
   turbo: 2.5,        // flèche ↑ (ou Z) maintenue pendant la course : vitesse multipliée par ce nombre (1 = pas de turbo)
   volume: 0.4,       // volume général des sons (0 à 1)
 
@@ -1352,7 +1353,7 @@ function ouvrirExplication() {
   $('expl-texte').textContent = typo(q.explication);
   el.btnSuivant.innerHTML = `${etat.index < NB - 1 ? T.boutonSuivant : T.boutonScore}<kbd>Espace</kbd>`;
   el.btnSuivant.disabled = true; etat.boutonActif = false;
-  etat.enchainement = ok && CONFIG.enchainementAuto && D.enchainement > 0;
+  etat.enchainement = ok && CONFIG.explicationSiBonneReponse && D.enchainement > 0;
   el.btnSuivant.classList.toggle('auto', etat.enchainement);
   el.btnSuivant.style.setProperty('--p', '0%');
   montrer(el.retour, false);
@@ -1363,7 +1364,11 @@ function ouvrirExplication() {
 function questionSuivante() {
   if (etat.phase !== 'explication' || !etat.boutonActif) return;
   Son.clic();
-  montrer(el.explication, false);
+  passerALaSuite();
+}
+// Question suivante, ou course finale après la dernière question
+function passerALaSuite() {
+  montrer(el.explication, false); montrer(el.retour, false);
   if (etat.index < NB - 1) commencerQuestion(etat.index + 1);
   else entrerPhase('arrivee');
 }
@@ -1630,7 +1635,16 @@ function mettreAJour(dt) {
     case 'apparition': {
       const k = sortie(clamp(etat.t / 0.4, 0, 1));
       ARCHES.forEach((a) => a.groupe.scale.setScalar(Math.max(0.001, k)));
-      if (etat.t >= D.apparition) entrerPhase('decompte');
+      if (etat.t >= D.apparition) {
+        if (etat.index === 0 || CONFIG.decompteEntreQuestions) entrerPhase('decompte');
+        else {                                   // pas de compte à rebours : la course démarre tout de suite
+          entrerPhase('course');
+          if (etat.index === NB - 1 && NB > 1 && T.sprintFinal) {
+            el.decompte.innerHTML = `<span class="sprint">${typo(T.sprintFinal)} ${formatMultiplicateur(multiplicateur(etat.index))}</span>`;
+            Son.partez();
+          }
+        }
+      }
       break;
     }
     case 'decompte': {
@@ -1644,6 +1658,7 @@ function mettreAJour(dt) {
       etat.facteurTurbo = lerp(etat.facteurTurbo, etat.turbo ? CONFIG.turbo : 1, 1 - Math.exp(-dt * 10)); // accélération progressive
       vitesse = etat.vitesseCourse * etat.facteurTurbo;
       if (etat.turbo !== etat.turboAffiche) { etat.turboAffiche = etat.turbo; majPillVitesse(); }
+      if (etat.t > 1.5 && el.decompte.innerHTML) el.decompte.innerHTML = '';
       const distance = Z_FRANCHISSEMENT - arches.position.z;
       const restant = distance / vitesse;
       el.barre.style.transform = `scaleX(${clamp(distance / CONFIG.distanceArches, 0, 1)})`;
@@ -1659,7 +1674,11 @@ function mettreAJour(dt) {
       break;
     case 'retour':
       vitesse = etat.vitesseCourse * D.ralenti * Math.max(0, 1 - etat.t / D.arretPersonnage);
-      if (etat.t >= D.retour) entrerPhase('explication');
+      if (etat.t >= D.retour) {
+        // Bonne réponse : on enchaîne directement. Erreur : l’explication reste jusqu’à Espace.
+        if (etat.dernierOk && !CONFIG.explicationSiBonneReponse) passerALaSuite();
+        else entrerPhase('explication');
+      }
       break;
     case 'explication':
       if (!etat.boutonActif && etat.t >= D.explicationMin) { etat.boutonActif = true; el.btnSuivant.disabled = false; }
