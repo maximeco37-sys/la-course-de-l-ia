@@ -126,8 +126,11 @@ const CONFIG = {
     aideCouloir: "changer de couloir",
     aideJouer: "jouer",
     aideTurbo: "maintenir pour accélérer",
+    turboTitre: "Turbo",
+    turboAccroche: "Vous connaissez la réponse ? Foncez vers l’arche !",
+    turboRappel: "maintenir : Turbo",
     aideTactileCouloir: "ou glisser le doigt : changer de couloir",
-    aideTactileTurbo: "maintenu : accélérer",
+    aideTactileTurbo: "maintenir pour accélérer",
     aideTactileCarte: "Toucher une carte réponse : aller dans ce couloir",
     turbo: "Turbo",
     partez: "Partez !",
@@ -259,7 +262,23 @@ html, body {
 .fleche svg { width: 52px; height: 52px; }
 body.tactile .fleche { display: grid !important; }
 #fleche-gauche { left: 24px; } #fleche-droite { right: 24px; }
-#fleche-turbo { right: 24px; top: 356px; background: rgba(39, 99, 182, .85) !important; }
+#fleche-turbo { right: 24px; top: 332px; width: 128px; height: 128px; background: var(--bleu) !important; border: 5px solid var(--ambre) !important; color: #fff !important; }
+#fleche-turbo .fleche-contenu { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+#fleche-turbo svg { width: 50px; height: 50px; color: var(--ambre); }
+#fleche-turbo .fleche-label { font: 700 22px/1 var(--titre); letter-spacing: .02em; }
+#fleche-turbo.appel { animation: appel-turbo 1.3s ease-out infinite; }
+@keyframes appel-turbo {
+  0% { box-shadow: 0 0 0 0 rgba(243, 163, 59, .9); transform: scale(1); }
+  20% { transform: scale(1.08); }
+  45% { transform: scale(1); }
+  100% { box-shadow: 0 0 0 34px rgba(243, 163, 59, 0); transform: scale(1); }
+}
+#pill-turbo { position: absolute; right: 24px; top: 160px; background: var(--bleu); color: #fff; opacity: 0; transition: opacity .3s; animation: appel-pill 1.6s ease-in-out infinite; }
+#pill-turbo.visible { opacity: 1; }
+#pill-turbo svg { width: 26px; height: 26px; color: var(--ambre); }
+#pill-turbo .touche { min-width: 40px; height: 38px; color: var(--encre); }
+@keyframes appel-pill { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+body.tactile #pill-turbo, body.portrait #pill-turbo { display: none; }
 #pill-vitesse.turbo { background: var(--bleu); color: #fff; }
 
 /* ---------- Compte à rebours et retours ---------- */
@@ -305,6 +324,16 @@ body.tactile .fleche { display: grid !important; }
 .aide { display: flex; flex-direction: column; gap: 12px; padding: 16px 28px; border-radius: 20px; background: rgba(255, 243, 223, .92); box-shadow: var(--ombre); font: 800 24px/1.2 var(--texte); }
 .aide div { display: flex; align-items: center; gap: 6px; }
 .touche { display: inline-grid; place-items: center; min-width: 44px; height: 42px; padding: 0 10px; border-radius: 10px; background: var(--creme); border: 2px solid var(--encre); box-shadow: 0 3px 0 var(--encre); font: 900 21px/1 var(--texte); }
+.encart-turbo { display: flex; align-items: center; gap: 24px; width: 100%; padding: 18px 28px; border-radius: 24px; background: var(--creme); border: 5px solid var(--bleu); box-shadow: var(--ombre); }
+.icone-turbo { flex: none; width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; background: var(--bleu); color: var(--ambre); box-shadow: 0 6px 0 #1b4a8a; animation: appel-icone 1.6s ease-in-out infinite; }
+.icone-turbo svg { width: 58px; height: 58px; }
+@keyframes appel-icone { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.1) rotate(-6deg); } }
+.encart-turbo-titre { font: 700 40px/1 var(--titre); color: var(--bleu); }
+.encart-turbo-texte { margin-top: 6px; font: 900 26px/1.2 var(--texte); }
+.encart-turbo-touches { margin-top: 10px; align-items: center; gap: 6px; font: 800 24px/1.2 var(--texte); }
+.aide-clavier.encart-turbo-touches { display: flex; }
+.mini-turbo { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--bleu); color: var(--ambre); border: 3px solid var(--ambre); }
+.mini-turbo svg { width: 24px; height: 24px; }
 #erreurs-config { color: var(--rouge); font: 900 22px/1.3 var(--texte); text-align: left; }
 
 /* Explication */
@@ -360,7 +389,7 @@ body.portrait .carte-tete { height: 64px; font-size: 46px; }
 body.portrait .carte-corps { min-height: 120px; font-size: 40px; }
 body.portrait .carte .badge { font-size: 26px; top: -46px; }
 body.portrait .fleche { top: auto; bottom: 498px; width: 132px; height: 132px; }
-body.portrait #fleche-turbo { top: auto; bottom: 648px; }
+body.portrait #fleche-turbo { top: auto; bottom: 650px; }
 body.portrait #decompte { top: 560px; }
 body.portrait #retour { top: 470px; }
 body.portrait .panneau-droite { left: 24px; right: 24px; width: auto; }
@@ -369,6 +398,12 @@ body.portrait #accueil-carte, body.portrait #fin-carte { width: 100%; }
 body.portrait #accueil-accroche { font-size: 42px; }
 body.portrait #accueil-groupe { font-size: 34px; }
 body.portrait .aide { font-size: 30px; }
+body.portrait .encart-turbo-titre { font-size: 48px; }
+body.portrait .encart-turbo-texte { font-size: 34px; }
+body.portrait .encart-turbo-touches { font-size: 30px; }
+body.portrait .icone-turbo { width: 116px; height: 116px; }
+body.portrait .icone-turbo svg { width: 70px; height: 70px; }
+body.portrait #fleche-turbo { width: 150px; height: 150px; right: 14px; }
 body.portrait #ecran-fin .panneau-droite { top: 150px; transform: none; }
 body.portrait #fin-message { font-size: 38px; }
 body.portrait #fin-cle { font-size: 56px; }
@@ -416,7 +451,8 @@ body.portrait #expl-texte { font-size: 42px; }
     </div>
     <button class="fleche" id="fleche-gauche" aria-label="Couloir de gauche"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="16,4 6,12 16,20"/></svg></button>
     <button class="fleche" id="fleche-droite" aria-label="Couloir de droite"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,4 18,12 8,20"/></svg></button>
-    <button class="fleche" id="fleche-turbo" aria-label="Accélérer (maintenir)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="4,17 12,6 20,17"/></svg></button>
+    <button class="fleche appel" id="fleche-turbo" aria-label="Turbo : maintenir pour accélérer"><span class="fleche-contenu"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4.5 13.5h6.2L9.5 22l9-12h-6.3z"/></svg><span class="fleche-label" id="fleche-turbo-label"></span></span></button>
+    <div class="pill" id="pill-turbo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4.5 13.5h6.2L9.5 22l9-12h-6.3z"/></svg><span class="touche">↑</span><span id="pill-turbo-texte"></span></div>
   </div>
 
   <div id="decompte" aria-hidden="true"></div>
@@ -433,14 +469,21 @@ body.portrait #expl-texte { font-size: 42px; }
         <div id="erreurs-config" class="cache"></div>
       </div>
       <button id="btn-jouer" class="bouton-principal"></button>
+      <div class="encart-turbo" id="accueil-turbo">
+        <div class="icone-turbo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4.5 13.5h6.2L9.5 22l9-12h-6.3z"/></svg></div>
+        <div>
+          <div class="encart-turbo-titre" id="turbo-titre"></div>
+          <div class="encart-turbo-texte" id="turbo-accroche"></div>
+          <div class="encart-turbo-touches aide-clavier"><span class="touche">↑</span>&nbsp;ou&nbsp;<span class="touche">Z</span>&nbsp;: <span id="aide-turbo"></span></div>
+          <div class="encart-turbo-touches aide-tactile"><span class="mini-turbo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4.5 13.5h6.2L9.5 22l9-12h-6.3z"/></svg></span>&nbsp;<span id="aide-tactile-turbo"></span></div>
+        </div>
+      </div>
       <div class="aide aide-tactile">
         <div><span class="touche">◀</span><span class="touche">▶</span>&nbsp;<span id="aide-tactile-couloir"></span></div>
-        <div id="aide-tactile-ligne-turbo"><span class="touche">▲</span>&nbsp;<span id="aide-tactile-turbo"></span></div>
         <div id="aide-tactile-carte"></div>
       </div>
       <div class="aide aide-clavier">
         <div><span class="touche">←</span><span class="touche">→</span>&nbsp;ou&nbsp;<span class="touche">Q</span><span class="touche">D</span>&nbsp;: <span id="aide-couloir"></span></div>
-        <div id="aide-ligne-turbo"><span class="touche">↑</span>&nbsp;ou&nbsp;<span class="touche">Z</span>&nbsp;: <span id="aide-turbo"></span></div>
         <div><span class="touche">Espace</span>&nbsp;: <span id="aide-jouer"></span></div>
       </div>
     </div>
@@ -539,7 +582,8 @@ const ICONES = {
   quitterPleinEcran: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   son: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   muet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
-  vitesse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M13 6l6 6-6 6"/></svg>'
+  vitesse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M13 6l6 6-6 6"/></svg>',
+  turbo: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4.5 13.5h6.2L9.5 22l9-12h-6.3z"/></svg>'
 };
 
 // Vérifie CONFIG et affiche les erreurs sur l’accueil (utile après une modification)
@@ -1157,14 +1201,15 @@ function annoncer(texte) { el.annonce.textContent = texte; }
 $('logo-l1').textContent = T.titreLigne1; $('logo-l2').textContent = T.titreLigne2;
 $('accueil-accroche').textContent = typo(T.accueilAccroche); $('accueil-groupe').textContent = T.accueilGroupe;
 $('aide-couloir').textContent = T.aideCouloir; $('aide-jouer').textContent = T.aideJouer; $('aide-turbo').textContent = T.aideTurbo;
-if (!(CONFIG.turbo > 1)) { $('aide-ligne-turbo').classList.add('cache'); $('fleche-turbo').classList.add('cache'); }
+$('turbo-titre').textContent = T.turboTitre; $('turbo-accroche').textContent = typo(T.turboAccroche);
+$('fleche-turbo-label').textContent = T.turbo.toUpperCase(); $('pill-turbo-texte').textContent = T.turboRappel;
+if (!(CONFIG.turbo > 1)) { $('accueil-turbo').classList.add('cache'); $('fleche-turbo').classList.add('cache'); $('pill-turbo').classList.add('cache'); }
 el.btnJouer.textContent = T.boutonJouer; el.btnRejouer.innerHTML = `${T.boutonRejouer}<kbd>Espace</kbd>`;
 $('pause-titre').textContent = T.pause; el.btnReprendre.innerHTML = `${T.boutonReprendre}<kbd>Espace</kbd>`;
 $('expl-etiquette-bonne').textContent = '✓ ' + T.etiquetteBonne; $('expl-etiquette-choisie').textContent = '✗ ' + T.etiquetteChoisie;
 $('expl-saviez').textContent = T.saviezVous;
 el.btnPleinEcran.innerHTML = ICONES.pleinEcran;
 $('aide-tactile-couloir').textContent = T.aideTactileCouloir; $('aide-tactile-turbo').textContent = T.aideTactileTurbo; $('aide-tactile-carte').textContent = T.aideTactileCarte;
-if (!(CONFIG.turbo > 1)) $('aide-tactile-ligne-turbo').classList.add('cache');
 if (!document.fullscreenEnabled) el.btnPleinEcran.classList.add('cache'); // l’iPhone ne permet pas le plein écran d’une page
 dessinerArrivee();
 
@@ -1252,7 +1297,7 @@ const etat = {
   couloirCible: CONFIG.couloirDepart - 1, manche: null, vitesseCourse: 0, vitesseMonde: 0,
   decompteIndex: -1, dernierTic: 99, reponduQuestion: false, dernierChoix: 0, dernierOk: false,
   phaseAvantPause: null, boutonActif: false, derniereAction: 0,
-  turbo: false, facteurTurbo: 1, turboAffiche: false, enchainement: false
+  turbo: false, facteurTurbo: 1, turboAffiche: false, turboUtilise: false, enchainement: false
 };
 const PHASES_AVEC_COMMANDES = ['apparition', 'decompte', 'course'];
 
@@ -1261,7 +1306,7 @@ function majPillVitesse() {
   const m = multiplicateur(etat.index);
   el.pillVitesse.classList.toggle('turbo', etat.turboAffiche);
   el.pillVitesse.innerHTML = etat.turboAffiche
-    ? `${ICONES.vitesse}${T.turbo} ${formatMultiplicateur(m * CONFIG.turbo)}`
+    ? `${ICONES.turbo}${T.turbo} ${formatMultiplicateur(m * CONFIG.turbo)}`
     : `${ICONES.vitesse}${T.vitesse} ${formatMultiplicateur(m)}`;
 }
 // Turbo : tant que ↑ (ou Z, ou le bouton tactile) est maintenu, l’artisan accélère pendant la course
@@ -1269,6 +1314,12 @@ function activerTurbo(oui) {
   if (!(CONFIG.turbo > 1)) return;
   if (oui && !etat.turbo && etat.phase === 'course') Son.turbo();
   etat.turbo = oui;
+  if (oui && !etat.turboUtilise && PHASES_AVEC_COMMANDES.includes(etat.phase)) { etat.turboUtilise = true; majAppelTurbo(); }
+}
+// Mise en avant du turbo tant que le groupe ne l’a pas encore essayé : bouton qui pulse (tactile), rappel « ↑ Turbo » (clavier)
+function majAppelTurbo() {
+  $('fleche-turbo').classList.toggle('appel', !etat.turboUtilise);
+  $('pill-turbo').classList.toggle('visible', !etat.turboUtilise && etat.phase === 'course');
 }
 
 function entrerPhase(phase) {
@@ -1280,12 +1331,13 @@ function entrerPhase(phase) {
   if (phase === 'explication') ouvrirExplication();
   if (phase === 'arrivee') commencerArrivee();
   if (phase === 'fin') ouvrirFin();
+  majAppelTurbo();
 }
 
 // Nouvelle partie (depuis l’accueil ou « Rejouer ») : tout est remis à zéro
 function demarrerPartie() {
   Son.init(); Son.demarrage();
-  Object.assign(etat, { score: 0, resultats: [], couloirsBons: [], couloirCible: CONFIG.couloirDepart - 1, reponduQuestion: false });
+  Object.assign(etat, { score: 0, resultats: [], couloirsBons: [], couloirCible: CONFIG.couloirDepart - 1, reponduQuestion: false, turboUtilise: false });
   perso.x = xCouloir(etat.couloirCible); perso.glisse = null; perso.rebond = null; perso.special = null;
   reinitialiserDecor(); viderConfettis();
   arrivee.visible = false;
