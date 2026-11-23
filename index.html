@@ -71,9 +71,9 @@ const CONFIG = {
 
   /* ---------- 2. LA VITESSE ---------- */
   vitesseDeBase: 6,                              // mètres par seconde à « x1 »
-  multiplicateurs: [1, 1.2, 1.4, 1.7, 1.9, 2.5], // un par question (x1 → x2,5)
+  multiplicateurs: [1, 1, 1, 1, 1, 1], // un par question : 1 = même vitesse partout (ex. accélération : [1, 1.2, 1.4, 1.7, 1.9, 2.5])
   distanceArches: 90,                            // mètres entre « Partez ! » et les arches
-  // Temps de course = distance ÷ (vitesse de base × multiplicateur) : 15 s à la question 1, 6 s à la question 6.
+  // Temps de course = distance ÷ (vitesse de base × multiplicateur) : 90 ÷ 6 = 15 s par question.
 
   /* ---------- 3. LES DURÉES (en secondes) ---------- */
   durees: {
@@ -554,6 +554,8 @@ function verifierConfig() {
   return erreurs;
 }
 const multiplicateur = (i) => CONFIG.multiplicateurs[Math.min(i, CONFIG.multiplicateurs.length - 1)] || 1;
+// « Sprint final ! » seulement si la dernière question est plus rapide que l’avant-dernière
+const estSprintFinal = () => etat.index === NB - 1 && NB > 1 && T.sprintFinal && multiplicateur(NB - 1) > multiplicateur(NB - 2);
 const texteArche = (q, r) => (q.arches && q.arches[r]) || q.reponses[r];
 
 /* =====================================================================
@@ -1341,7 +1343,7 @@ function commencerQuestion(i) {
 
 function afficherDecompte(idx) {
   const mot = idx >= 3;
-  const sprint = etat.index === NB - 1 && NB > 1 && T.sprintFinal ? `<span class="sprint">${typo(T.sprintFinal)} ${formatMultiplicateur(multiplicateur(etat.index))}</span>` : '';
+  const sprint = estSprintFinal() ? `<span class="sprint">${typo(T.sprintFinal)} ${formatMultiplicateur(multiplicateur(etat.index))}</span>` : '';
   el.decompte.innerHTML = `${sprint}<span class="chiffre${mot ? ' mot' : ''}">${mot ? typo(T.partez) : 3 - idx}</span>`;
   el.decompte.querySelector('.chiffre').animate([{ transform: 'scale(.6)', opacity: 0 }, { transform: 'scale(1.06)', opacity: 1, offset: .6 }, { transform: 'scale(1)', opacity: 1 }],
     { duration: 220, easing: 'ease-out' });
@@ -1713,7 +1715,7 @@ function mettreAJour(dt) {
         if (etat.index === 0 || CONFIG.decompteEntreQuestions) entrerPhase('decompte');
         else {                                   // pas de compte à rebours : la course démarre tout de suite
           entrerPhase('course');
-          if (etat.index === NB - 1 && NB > 1 && T.sprintFinal) {
+          if (estSprintFinal()) {
             el.decompte.innerHTML = `<span class="sprint">${typo(T.sprintFinal)} ${formatMultiplicateur(multiplicateur(etat.index))}</span>`;
             Son.partez();
           }
