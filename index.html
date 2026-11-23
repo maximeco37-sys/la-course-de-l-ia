@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>La Course de l’IA</title>
 
 <script>
@@ -124,6 +126,9 @@ const CONFIG = {
     aideCouloir: "changer de couloir",
     aideJouer: "jouer",
     aideTurbo: "maintenir pour accélérer",
+    aideTactileCouloir: "ou glisser le doigt : changer de couloir",
+    aideTactileTurbo: "maintenu : accélérer",
+    aideTactileCarte: "Toucher une carte réponse : aller dans ce couloir",
     turbo: "Turbo",
     partez: "Partez !",
     sprintFinal: "Sprint final !",
@@ -183,6 +188,7 @@ html, body {
   height: 100%; overflow: hidden; background: var(--creme);
   font-family: var(--texte); color: var(--encre);
   -webkit-user-select: none; user-select: none; touch-action: none;
+  -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
 }
 #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 
@@ -335,7 +341,43 @@ body.tactile .fleche { display: grid !important; }
 /* Messages hors interface (téléphone en portrait, pas d’internet) */
 .message-plein { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 24px; text-align: center; background: var(--creme); font: 800 22px/1.4 var(--texte); }
 .message-plein strong { display: block; margin-bottom: 8px; font: 700 34px/1.2 var(--titre); }
-@media (orientation: portrait) and (max-width: 900px) { #tourner { display: flex; } }
+/* Aide : clavier sur ordinateur, gestes sur écran tactile */
+.aide-tactile { display: none !important; }
+body.tactile .aide-clavier { display: none !important; }
+body.tactile .aide-tactile { display: flex !important; }
+body.tactile .bouton-principal kbd { display: none; }
+* { touch-action: manipulation; }
+#scene, #ui, .fleche, .carte { touch-action: none; }
+
+/* ---------- Téléphone ou écran en vertical : interface dessinée pour 1080 × 1920 ---------- */
+body.portrait .pill { height: 60px; font-size: 30px; }
+body.portrait #hud-gauche { flex-direction: row; }
+body.portrait #pill-vitesse { top: 96px; }
+body.portrait #bandeau { top: 168px; width: 1032px; }
+body.portrait #bandeau-carte { font-size: 60px; padding: 18px 32px; }
+body.portrait #cartes { left: 24px; width: 1032px; grid-template-columns: repeat(2, 1fr); gap: 56px 20px; }
+body.portrait .carte-tete { height: 64px; font-size: 46px; }
+body.portrait .carte-corps { min-height: 120px; font-size: 40px; }
+body.portrait .carte .badge { font-size: 26px; top: -46px; }
+body.portrait .fleche { top: auto; bottom: 498px; width: 132px; height: 132px; }
+body.portrait #fleche-turbo { top: auto; bottom: 648px; }
+body.portrait #decompte { top: 560px; }
+body.portrait #retour { top: 470px; }
+body.portrait .panneau-droite { left: 24px; right: 24px; width: auto; }
+body.portrait #ecran-accueil .panneau-droite { top: 140px; }
+body.portrait #accueil-carte, body.portrait #fin-carte { width: 100%; }
+body.portrait #accueil-accroche { font-size: 42px; }
+body.portrait #accueil-groupe { font-size: 34px; }
+body.portrait .aide { font-size: 30px; }
+body.portrait #ecran-fin .panneau-droite { top: 150px; transform: none; }
+body.portrait #fin-message { font-size: 38px; }
+body.portrait #fin-cle { font-size: 56px; }
+body.portrait .carte-explication { width: 1032px; margin-top: 260px; padding: 40px 44px; }
+body.portrait #expl-titre { font-size: 64px; }
+body.portrait .ligne-reponse { font-size: 40px; }
+body.portrait .etiquette { font-size: 30px; }
+body.portrait .saviez { font-size: 32px; }
+body.portrait #expl-texte { font-size: 42px; }
 </style>
 </head>
 <body>
@@ -391,7 +433,12 @@ body.tactile .fleche { display: grid !important; }
         <div id="erreurs-config" class="cache"></div>
       </div>
       <button id="btn-jouer" class="bouton-principal"></button>
-      <div class="aide">
+      <div class="aide aide-tactile">
+        <div><span class="touche">◀</span><span class="touche">▶</span>&nbsp;<span id="aide-tactile-couloir"></span></div>
+        <div id="aide-tactile-ligne-turbo"><span class="touche">▲</span>&nbsp;<span id="aide-tactile-turbo"></span></div>
+        <div id="aide-tactile-carte"></div>
+      </div>
+      <div class="aide aide-clavier">
         <div><span class="touche">←</span><span class="touche">→</span>&nbsp;ou&nbsp;<span class="touche">Q</span><span class="touche">D</span>&nbsp;: <span id="aide-couloir"></span></div>
         <div id="aide-ligne-turbo"><span class="touche">↑</span>&nbsp;ou&nbsp;<span class="touche">Z</span>&nbsp;: <span id="aide-turbo"></span></div>
         <div><span class="touche">Espace</span>&nbsp;: <span id="aide-jouer"></span></div>
@@ -427,7 +474,6 @@ body.tactile .fleche { display: grid !important; }
   <div id="annonce" class="lecteur" aria-live="polite"></div>
 </div>
 
-<div class="message-plein" id="tourner"><div><strong>Tournez votre appareil</strong>Le jeu se joue à l’horizontale.</div></div>
 <div class="message-plein" id="erreur"><div><strong>Le jeu n’a pas pu démarrer</strong><span id="erreur-texte">Vérifiez la connexion internet (nécessaire pour charger la 3D), puis rechargez la page. Utilisez Chrome ou Edge.</span></div></div>
 
 <script type="module">
@@ -1115,6 +1161,9 @@ $('pause-titre').textContent = T.pause; el.btnReprendre.innerHTML = `${T.boutonR
 $('expl-etiquette-bonne').textContent = '✓ ' + T.etiquetteBonne; $('expl-etiquette-choisie').textContent = '✗ ' + T.etiquetteChoisie;
 $('expl-saviez').textContent = T.saviezVous;
 el.btnPleinEcran.innerHTML = ICONES.pleinEcran;
+$('aide-tactile-couloir').textContent = T.aideTactileCouloir; $('aide-tactile-turbo').textContent = T.aideTactileTurbo; $('aide-tactile-carte').textContent = T.aideTactileCarte;
+if (!(CONFIG.turbo > 1)) $('aide-tactile-ligne-turbo').classList.add('cache');
+if (!document.fullscreenEnabled) el.btnPleinEcran.classList.add('cache'); // l’iPhone ne permet pas le plein écran d’une page
 dessinerArrivee();
 
 const erreursConfig = verifierConfig();
@@ -1142,13 +1191,27 @@ function redimensionner() {
   const l = window.innerWidth, h = window.innerHeight;
   renderer.setSize(l, h, false);
   camera.aspect = l / h;
-  // Si l’écran est plus étroit que 16:10, on élargit l’angle pour garder les 4 couloirs visibles
-  const demiH = Math.tan(THREE.MathUtils.degToRad(55 / 2)) * 1.6;
-  CAMERA.fov = camera.aspect < 1.6 ? Math.min(85, THREE.MathUtils.radToDeg(2 * Math.atan(demiH / camera.aspect))) : 55;
+  const portrait = h > l;
+  document.body.classList.toggle('portrait', portrait);
+  if (portrait) {
+    // Vertical : caméra plus haute et plus loin pour voir les 4 couloirs
+    Object.assign(CAMERA, { y: 6.2, z: 12.5, viseY: 0.4, viseZ: -8 });
+    CAMERA.fov = clamp(THREE.MathUtils.radToDeg(2 * Math.atan(0.36 / camera.aspect)), 60, 90);
+  } else {
+    Object.assign(CAMERA, { y: 4.2, z: 7.5, viseY: 0.6, viseZ: -8 });
+    // Si l’écran est plus étroit que 16:10, on élargit l’angle pour garder les 4 couloirs visibles
+    const demiH = Math.tan(THREE.MathUtils.degToRad(55 / 2)) * 1.6;
+    CAMERA.fov = camera.aspect < 1.6 ? Math.min(85, THREE.MathUtils.radToDeg(2 * Math.atan(demiH / camera.aspect))) : 55;
+  }
+  camera.position.y = CAMERA.y; camera.position.z = CAMERA.z;
   camera.fov = CAMERA.fov;
   camera.updateProjectionMatrix();
-  const s = Math.min(l / 1920, h / 1080);
-  ui.style.transform = `translate(${(l - 1920 * s) / 2}px, ${(h - 1080 * s) / 2}px) scale(${s})`;
+  // Interface : 1920 × 1080 à l’horizontale, 1080 × 1920 à la verticale, mise à l’échelle de la fenêtre
+  // En vertical, l’interface prend toute la hauteur du téléphone (écrans plus allongés que 9:16)
+  const LU = portrait ? 1080 : 1920, HU = portrait ? Math.max(1920, Math.round(1080 * h / l)) : 1080;
+  ui.style.width = LU + 'px'; ui.style.height = HU + 'px';
+  const s = Math.min(l / LU, h / HU);
+  ui.style.transform = `translate(${(l - LU * s) / 2}px, ${(h - HU * s) / 2}px) scale(${s})`;
 }
 window.addEventListener('resize', redimensionner);
 redimensionner();
@@ -1326,7 +1389,7 @@ function animerPlusUn() {
   const hg = $('hud-gauche');
   const x1 = hg.offsetLeft + el.pillScore.offsetLeft + el.pillScore.offsetWidth / 2;
   const y1 = hg.offsetTop + el.pillScore.offsetTop + el.pillScore.offsetHeight / 2;
-  const x0 = 960, y0 = 470;
+  const x0 = ui.offsetWidth / 2, y0 = document.body.classList.contains('portrait') ? 640 : 470;
   const tr = (x, y, s) => `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${s})`;
   el.plusUn.animate([
     { transform: tr(x0, y0 + 30, 0.6), opacity: 0 },
@@ -1479,8 +1542,19 @@ boutonTurbo.addEventListener('pointerdown', (e) => { e.preventDefault(); Son.ini
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((t) => boutonTurbo.addEventListener(t, () => activerTurbo(false)));
 el.cartes.forEach((carte, c) => carte.addEventListener('click', () => { Son.init(); allerAuCouloir(c); }));
 
+// iPhone : empêche le zoom par double-tap ou par pincement (sinon impossible de revenir au jeu)
+let dernierToucher = 0;
+document.addEventListener('touchend', (e) => {
+  const maintenant = Date.now();
+  if (maintenant - dernierToucher < 350) e.preventDefault();
+  dernierToucher = maintenant;
+}, { passive: false });
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+['gesturestart', 'gesturechange', 'gestureend'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
 // Tactile : affiche les flèches et accepte le balayage horizontal sur la scène
-if (window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('tactile');
+if (window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 || 'ontouchstart' in window) document.body.classList.add('tactile');
 let departBalayage = null;
 window.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'touch') document.body.classList.add('tactile');
